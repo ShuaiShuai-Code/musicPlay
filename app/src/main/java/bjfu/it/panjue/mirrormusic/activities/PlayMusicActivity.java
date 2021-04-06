@@ -3,6 +3,7 @@ package bjfu.it.panjue.mirrormusic.activities;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -36,7 +37,7 @@ public class PlayMusicActivity extends BaseActivity implements MusicStopListener
     private String mMusicId;
     private RealmHelp mRealmHelp;
     private MusicModel mMusicModel;
-    private BubbleSeekBar seekBar;
+    private BubbleSeekBar my_seekBar;
     private TextView tv_time;
     private List<MusicModel> dataSource;
     private AlbumModel albumModel;
@@ -70,7 +71,7 @@ public class PlayMusicActivity extends BaseActivity implements MusicStopListener
 
     //下一页
     private void pageNext(int position) {
-        new_position=position;
+        new_position = position;
         mMusicId = dataSource.get(position).getMusicId();
         mRealmHelp = new RealmHelp();
         mMusicModel = dataSource.get(position);
@@ -89,10 +90,11 @@ public class PlayMusicActivity extends BaseActivity implements MusicStopListener
 
     //上一页
     private void pagePrevi(int position) {
-        new_position=position;
+        new_position = position;
         mMusicId = dataSource.get(position).getMusicId();
         mRealmHelp = new RealmHelp();
-        mMusicModel = dataSource.get(position);;
+        mMusicModel = dataSource.get(position);
+        ;
         Glide.with(this)
                 .load(mMusicModel.getPoster())
                 .apply(RequestOptions.bitmapTransform(new BlurTransformation(25, 10)))
@@ -111,7 +113,37 @@ public class PlayMusicActivity extends BaseActivity implements MusicStopListener
         mIvBg = fd(R.id.iv_bg);
         mTvName = fd(R.id.tv_name);
         mTvAuthor = fd(R.id.tv_author);
-        seekBar = fd(R.id.seekBar);
+        my_seekBar = fd(R.id.my_seekBar);
+        //可以实现拖动进度条，让歌曲在进度条位置播放，调用seekTo（方法）
+        my_seekBar.setOnProgressChangedListener(new BubbleSeekBar.OnProgressChangedListener() {
+            @Override
+            public void onProgressChanged(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat) {
+//                Log.i("时长+++++Position",mPlayMusicView.getCurrentPosition()+"");
+//                Log.i("时长+++++Duration",mPlayMusicView.getDuration()+"");
+                if (mPlayMusicView.getCurrentPosition()>=mPlayMusicView.getDuration()) {
+                    if (new_position >= dataSource.size() - 1) {
+                        Toast.makeText(PlayMusicActivity.this, "目前是列表最后一曲", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    pageNext(new_position + 1);
+                }
+            }
+
+            @Override
+            public void getProgressOnActionUp(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat) {
+                //
+                int time = (int) (mPlayMusicView.getDuration() * progressFloat / 1000);
+                //my_seekBar.setProgress((float) (player.position() * 1000 / player.duration()));
+                //tv_time.setText(StringUtils.getTime((int) player.position() * 1000));
+                mPlayMusicView.seekTo(time);
+
+            }
+
+            @Override
+            public void getProgressOnFinally(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat) {
+
+            }
+        });
         tv_time = fd(R.id.tv_time);
 
         //glide-transformations
@@ -132,7 +164,7 @@ public class PlayMusicActivity extends BaseActivity implements MusicStopListener
         findViewById(R.id.tv_next).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (new_position >= dataSource.size()-1) {
+                if (new_position >= dataSource.size() - 1) {
                     Toast.makeText(PlayMusicActivity.this, "目前是列表最后一曲", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -150,6 +182,8 @@ public class PlayMusicActivity extends BaseActivity implements MusicStopListener
                 pagePrevi(new_position - 1);
             }
         });
+
+
     }
 
     //后退按钮点击事件
@@ -168,11 +202,24 @@ public class PlayMusicActivity extends BaseActivity implements MusicStopListener
         @Override
         public void handleMessage(Message msg) {
             if (mPlayMusicView.getPlaying() && msg.what == 1) {
+
                 int duration = mPlayMusicView.getDuration();
+
+                if (duration <= 0) {
+                    handler.sendEmptyMessage(1);
+                    return;
+                }
                 int current = mPlayMusicView.getCurrentPosition();
+
+                if (current <= 0) {
+                    handler.sendEmptyMessage(1);
+                    return;
+                }
                 float process = current / (float) duration;
+
                 float realProgress = process * 1000;
-                seekBar.setProgress(realProgress);
+
+                my_seekBar.setProgress(realProgress);
                 handler.sendEmptyMessageDelayed(1, 100);
                 tv_time.setText(StringUtils.getTime(current) + "/" + StringUtils.getTime(duration));
             }
