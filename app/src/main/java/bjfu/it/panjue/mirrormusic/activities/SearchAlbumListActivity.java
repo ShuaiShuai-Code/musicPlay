@@ -69,14 +69,16 @@ public class SearchAlbumListActivity extends BaseSearchActivity {
 
     public static ArrayList<MusicModel> search(String name, List<MusicModel> list) {
         ArrayList<MusicModel> results = new ArrayList();
-        Pattern pattern = Pattern.compile(name);
+        Pattern pattern = Pattern.compile(name,Pattern.CASE_INSENSITIVE);
+        Pattern patternName = Pattern.compile(name,Pattern.CASE_INSENSITIVE);
 //      如果要求大小写不敏感，改成：
 //      Pattern pattern = Pattern.compile(name,Pattern.CASE_INSENSITIVE);
         for (int i = 0; i < list.size(); i++) {
             Matcher matcher = pattern.matcher((list.get(i)).getName());
+            Matcher matcherName = patternName.matcher((list.get(i)).getAuthor());
             //匹配查询
             //matcher.matches()
-            if (matcher.find()) {
+            if (matcher.find()||matcherName.find()) {
                 results.add(list.get(i));
             }
         }
